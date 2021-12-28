@@ -1,0 +1,11 @@
+{
+  "name": "module-1",
+  "version": "1.0.0",
+  "description": "flipr externship module 1 - User Management",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Anshul Singh",
+  "license": "ISC"
+}
