@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 
 function authController() {
   return {
+      
+    // login a user
     async login(req, res) {
       const { email, password } = req.body;
 
@@ -50,6 +52,7 @@ function authController() {
       }
     },
 
+    // register a user
     async register(req, res) {
       const { name, email, password } = req.body;
       // Validate request
@@ -91,10 +94,29 @@ function authController() {
         });
     },
 
+    // logout a user
     logout(req, res) {
       try {
         res.clearCookie("token");
         return res.status(200).send("Signed Out Successfully");
+      } catch (error) {
+        res.status(500).send(error);
+      }
+    },
+
+    // delete an user
+    async delete(req, res) {
+      const { userId } = req.body;
+      const user = await UserModel.findById(userId);
+      try {
+        // check if user exists
+        if (!user) {
+          res.status(500).send("User Not Found");
+        }
+        // delete the user
+        await UserModel.findByIdAndDelete(userId);
+        res.clearCookie("token");
+        res.status(200).send("Successfully Deleted User");
       } catch (error) {
         res.status(500).send(error);
       }
