@@ -1,10 +1,37 @@
 const User = require("../models/user");
+const UserVerification = require("../models/userVerification");
+const transporter = require("../resources/nodemailerTransporter");
+
+require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 
 function authController() {
+  const sendVerificationEmail = ({ _id, email }, res) => {
+    // baseURL to be used in the email
+    const currentUrl = process.env.DOMAIN || "http://localhost:3000/";
+    const uniqueString = uuidv4() + _id;
+
+    // mail options
+    const mailOptions = {
+      from: process.env.GMAIL,
+      to: email,
+      subject: "Verify Your Email",
+      html: `<p>Verify your email address to complete the SignUp process.</p>`,
+    };
+
+    transporter.verify((error, success) => {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Ready for messages");
+        console.log(success);
+      }
+    });
+  };
+
   return {
-      
     // login a user
     async login(req, res) {
       const { email, password } = req.body;
@@ -15,9 +42,9 @@ function authController() {
       }
 
       try {
-        const user = await UserModel.findOne({
-          email: email.toLowerCase(),
-        }).select("+password");
+        const user = await User.findOne({
+          $and: [{ email: email }, { email_verified: true }],
+        });
 
         // check if user exists
         if (!user) {
@@ -54,30 +81,30 @@ function authController() {
 
     // register a user
     async register(req, res) {
-      const { name, email, password } = req.body;
+      const { username, email, password } = req.body;
       // Validate request
-      if (!name || !email || !password) {
-        req.flash("error", "All fields are required");
-        req.flash("name", name);
-        req.flash("email", email);
-        return res.redirect("/register");
+      if (!username || !email || !password) {
+        return res.status(400).send("All Fields Required");
       }
 
       // Check if email exists
-      User.exists({ email: email }, (err, result) => {
-        if (result) {
-          req.flash("error", "Email already taken");
-          req.flash("name", name);
-          req.flash("email", email);
-          return res.redirect("/register");
+      users = await User.find({ email: email });
+      const isValid = true;
+      users.forEach((user) => {
+        if (user.email_verified) {
+          isValid = false;
         }
       });
+
+      if (!isValid) {
+        return res.status(400).send("Email already taken");
+      }
 
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
       // Create a user
       const user = new User({
-        name,
+        username,
         email,
         password: hashedPassword,
       });
@@ -85,12 +112,11 @@ function authController() {
       user
         .save()
         .then((user) => {
-          // Login
-          return res.redirect("/");
+          // handle verification
+          sendVerificationEmail(user, res);
         })
         .catch((err) => {
-          req.flash("error", "Something went wrong");
-          return res.redirect("/register");
+          return res.status(500).send("Something went wrong");
         });
     },
 
@@ -100,25 +126,7 @@ function authController() {
         res.clearCookie("token");
         return res.status(200).send("Signed Out Successfully");
       } catch (error) {
-        res.status(500).send(error);
-      }
-    },
-
-    // delete an user
-    async delete(req, res) {
-      const { userId } = req.body;
-      const user = await UserModel.findById(userId);
-      try {
-        // check if user exists
-        if (!user) {
-          res.status(500).send("User Not Found");
-        }
-        // delete the user
-        await UserModel.findByIdAndDelete(userId);
-        res.clearCookie("token");
-        res.status(200).send("Successfully Deleted User");
-      } catch (error) {
-        res.status(500).send(error);
+        return res.status(500).send(error);
       }
     },
   };

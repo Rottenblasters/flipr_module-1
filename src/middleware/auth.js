@@ -11,7 +11,7 @@ module.exports = (req, res, next) => {
 
     // get id of the user
     const { userId } = jwt.verify(token, process.env.COOKIE_SECRET);
-    req.body.userId = userId;
+    req.body.ID = userId;
     next();
   } catch (error) {
     console.error(error);
