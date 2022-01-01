@@ -18,17 +18,27 @@ function authController() {
       from: process.env.GMAIL,
       to: email,
       subject: "Verify Your Email",
-      html: `<p>Verify your email address to complete the SignUp process.</p>`,
+      html: `<p>Verify your email address to complete the SignUp process.</p>
+      <p><b>Click this link</b><p><a href=${
+        currentUrl + "user/verify/" + _id + "/" + uniqueString
+      }>Verify</a> Email</p>`,
     };
+    try {
+      // create UserVerification data
+      const hashedUniqueString = await bcrypt.hash(uniqueString, 10);
+      const newUserVerification = new UserVerification({
+        userId: _id,
+        uniqueString: hashedUniqueString,
+      });
+      await newUserVerification.save();
 
-    transporter.verify((error, success) => {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Ready for messages");
-        console.log(success);
-      }
-    });
+      // send mail
+      await transporter.sendMail(mailOptions);
+
+      return res.status(200).send("Verification mail sent");
+    } catch (error) {
+      return res.status(500).send("Something went wrong!");
+    }
   };
 
   return {
