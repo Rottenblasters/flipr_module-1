@@ -16,7 +16,7 @@ function mainController() {
       to: email,
       subject: "Password Reset Link",
       html: `
-          <p><b>Provide your new password below</b>
+          <p><b>Provide your new password below</b></p>
           <div><form action=${
             currentUrl + "user/reset-password/" + _id + "/" + uniqueString
           }>
