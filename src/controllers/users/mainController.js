@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 
 function mainController() {
   const sendVerificationEmail = ({ _id, email }, res) => {
+    const { newPswd } = req.body;
     // baseURL to be used in the email
     const currentUrl = process.env.DOMAIN || "http://localhost:3000/";
     const uniqueString = uuidv4() + _id;
@@ -16,23 +17,19 @@ function mainController() {
       to: email,
       subject: "Password Reset Link",
       html: `
-          <p><b>Provide your new password below</b></p>
-          <div><form action=${
+          <p><b>Click the link below to verify password reset</b></p>
+          <div><a href=${
             currentUrl + "user/reset-password/" + _id + "/" + uniqueString
-          }>
-          <label for="newPswd">New Password</label>
-          <input type="password" id="newPswd" name="newPswd" required>
-          <label for="confirmPswd">Confirm Password</label>
-          <input type="password" id="confirmPswd" name="confirmPswd" required>
-          <input type="submit" value="Submit">
-          </form></div>`,
+          }>Verify</a></div>`,
     };
     try {
       const hashedUniqueString = await bcrypt.hash(uniqueString, 10);
+      const hashedPassword = await bcrypt.hash(newPswd, 10);
       // save password verfication
       const newPasswordVerification = new PasswordVerification({
         userId: _id,
         uniqueString: hashedUniqueString,
+        newPassword : hashedPassword,
       });
       await newPasswordVerification.save();
 
@@ -138,14 +135,21 @@ function mainController() {
     // update password
     async updatePassword(req, res) {
       const { ID } = req.body;
+      try {
+        if (newPswd !== confirmPswd) {
+          return res.status(400).send("Passwords dont match!");
+        }
 
-      const user = await User.findById(ID);
-      if (!user) {
-        res.status(400).send("User not found");
+        const user = await User.findById(ID);
+        if (!user) {
+          res.status(400).send("User not found");
+        }
+
+        // handle verification
+        sendVerificationEmail(user, req);
+      } catch (error) {
+        return res.status(500).send(error);
       }
-
-      // handle verification
-      sendVerificationEmail(user, req);
     },
   };
 }

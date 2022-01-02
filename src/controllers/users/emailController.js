@@ -62,7 +62,7 @@ function emailController() {
           }
 
           // change password
-          user.password = true;
+          user.password = passwordVerification.newPassword;
           await user.save();
 
           return res.status(200).send("Password Changed");
