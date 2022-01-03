@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 
 function authController() {
-  const sendVerificationEmail = ({ _id, email }, res) => {
+  const sendVerificationEmail = async ({ _id, email }, res) => {
     // baseURL to be used in the email
     const currentUrl = process.env.DOMAIN || "http://localhost:3000/";
     const uniqueString = uuidv4() + _id;

@@ -11,7 +11,8 @@ function emailController() {
       const { userId, uniqueString } = req.params;
 
       try {
-        const userVerification = await UserVerification.findOne({ userId });
+        const userVerification = await UserVerification.findOne({ userId: userId });
+        
         // validate
         if (!userVerification) {
           return res.status(400).send("Verification Link Incorrect!");
@@ -20,8 +21,10 @@ function emailController() {
         // check unique string
         const hashedUniqueString = userVerification.uniqueString;
         const isValid = await bcrypt.compare(uniqueString, hashedUniqueString);
+        
         if (isValid) {
-          const user = await User.findById({ userId });
+          const user = await User.findById(userId);
+          
           if (!user) {
             return res.status(400).send("Verification Link Incorrect!");
           }
@@ -34,8 +37,8 @@ function emailController() {
         } else {
           return res.status(400).send("Verification Link Incorrect!");
         }
-      } catch {
-        return res.status(500).send("Something Went Wrong!");
+      } catch(error) {
+        return res.status(500).send(error);
       }
     },
 
@@ -56,7 +59,7 @@ function emailController() {
         const hashedUniqueString = passwordVerification.uniqueString;
         const isValid = await bcrypt.compare(uniqueString, hashedUniqueString);
         if (isValid) {
-          const user = await User.findById({ userId });
+          const user = await User.findById(userId);
           if (!user) {
             return res.status(400).send("Verification Link Incorrect!");
           }

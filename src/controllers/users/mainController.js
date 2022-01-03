@@ -3,9 +3,10 @@ const PasswordVerification = require("../../models/passwordVerification");
 const transporter = require("../../resources/nodemailerTransporter");
 
 const bcrypt = require("bcrypt");
+const { v4: uuidv4 } = require("uuid");
 
 function mainController() {
-  const sendVerificationEmail = ({ _id, email }, res) => {
+  const sendVerificationEmail = async ({ _id, email }, req, res) => {
     const { newPswd } = req.body;
     // baseURL to be used in the email
     const currentUrl = process.env.DOMAIN || "http://localhost:3000/";
@@ -45,15 +46,16 @@ function mainController() {
     // get a particular user
     async getUser(req, res) {
       const { ID } = req.body;
-      const { userId } = req.param;
+      const { userId } = req.params;
+      
       const user = await User.findById(userId);
       try {
         // check if user exists
-        if (!user && user.email_verified === true) {
+        if (!user || user.email_verified !== true) {
           return res.status(400).send("User Not Found");
         }
         // check if user is owner
-        if (user.isPublic || userId.toString() === ID.toString()) {
+        if (user.isPublic || userId === ID) {
           return res.status(200).send(user);
         } else {
           return res.status(200).send({ username: user.username });
@@ -95,6 +97,7 @@ function mainController() {
     // update user
     async updateUser(req, res) {
       const { ID, username, isPublic } = req.body;
+      console.log(username, isPublic);
       const user = await User.findById(ID);
       try {
         // check if user exists
@@ -103,8 +106,8 @@ function mainController() {
         }
 
         // update user
-        user.username = username === undefined ? username : user.username;
-        user.isPublic = isPublic === undefined ? isPublic : user.isPublic;
+        user.username = username !== undefined ? username : user.username;
+        user.isPublic = isPublic !== undefined ? isPublic : user.isPublic;
 
         await user.save();
 
@@ -124,7 +127,7 @@ function mainController() {
           return res.status(400).send("User Not Found");
         }
         // delete the user
-        await UserModel.findByIdAndDelete(userId);
+        await User.findByIdAndDelete(ID);
         res.clearCookie("token");
         return res.status(200).send("Successfully Deleted User");
       } catch (error) {
@@ -134,7 +137,8 @@ function mainController() {
 
     // update password
     async updatePassword(req, res) {
-      const { ID } = req.body;
+      const { ID, newPswd, confirmPswd } = req.body;
+      console.log(ID, newPswd, confirmPswd);
       try {
         if (newPswd !== confirmPswd) {
           return res.status(400).send("Passwords dont match!");
@@ -146,7 +150,7 @@ function mainController() {
         }
 
         // handle verification
-        sendVerificationEmail(user, req);
+        sendVerificationEmail(user, req, res);
       } catch (error) {
         return res.status(500).send(error);
       }
